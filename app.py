@@ -2,13 +2,11 @@ from flask import Flask, request, jsonify
 import numpy as np
 import joblib
 import os
-from tensorflow.keras.preprocessing import image
 
 app = Flask(__name__)
 
-# Define model path and input shape (if necessary)
+# Define model path
 MODEL_PATH = os.getenv('MODEL_PATH', 'MAIN_MUZZLE.joblib')  # Your joblib model path
-INPUT_SHAPE = (71, 71, 3)  # Update this based on your input shape requirements
 
 # Global variables for models
 model = None
@@ -28,21 +26,18 @@ def init_model():
 init_model()
 
 def preprocess_image(img_path):
-    """Preprocess image according to model requirements."""
-    img = image.load_img(img_path, target_size=INPUT_SHAPE[:2])
-    img_array = image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)
+    """Preprocess image for scikit-learn models."""
+    from PIL import Image
+    img = Image.open(img_path).convert('RGB')
+    img = img.resize((71, 71))  # Resize to the required dimensions
+    img_array = np.array(img)
     img_array = img_array / 255.0  # Normalize the image
-    return img_array
+    return img_array.flatten().reshape(1, -1)
 
 def extract_features(img_array):
     """Extract features for scikit-learn models."""
-    # Flatten the image to match the expected input format for the model
-    img_array = img_array.flatten().reshape(1, -1)
-    
     # Use the model to make predictions or extract features
     prediction = model.predict(img_array)  # Modify as needed for your model
-    
     return prediction
 
 @app.route('/health', methods=['GET'])
