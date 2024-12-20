@@ -9,7 +9,7 @@ import requests
 app = Flask(__name__)
 
 # URL to the .h5 model file stored on GitHub or GitHub Releases
-MODEL_URL = "https://github.com/username/repo/releases/download/v1.0.0/MAIN_MUZZLE.h5"
+MODEL_URL = "https://github.com/PriyanshuMaharana/CattleMuz/releases/download/main/MAIN_MUZZLE.h5"
 MODEL_PATH = "MAIN_MUZZLE.h5"  # Local path to save the model
 INPUT_SHAPE = (71, 71, 3)  # Update to match your model's input shape
 
