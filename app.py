@@ -6,9 +6,9 @@ from tensorflow.keras.preprocessing import image
 
 app = Flask(__name__)
 
-# Define model path
-MODEL_PATH = os.getenv('MODEL_PATH', 'model.joblib')  # Using .joblib file for scikit-learn model
-INPUT_SHAPE = (71, 71, 3)
+# Define model path and input shape (if necessary)
+MODEL_PATH = os.getenv('MODEL_PATH', 'MAIN_MUZZLE.joblib')  # Your joblib model path
+INPUT_SHAPE = (71, 71, 3)  # Update this based on your input shape requirements
 
 # Global variables for models
 model = None
@@ -17,7 +17,7 @@ def init_model():
     """Initialize the model"""
     global model
     try:
-        # Load the joblib model
+        # Load the model using joblib
         model = joblib.load(MODEL_PATH)
         print('Model loaded successfully.')
     except Exception as e:
@@ -32,31 +32,27 @@ def preprocess_image(img_path):
     img = image.load_img(img_path, target_size=INPUT_SHAPE[:2])
     img_array = image.img_to_array(img)
     img_array = np.expand_dims(img_array, axis=0)
-    img_array = img_array / 255.0
+    img_array = img_array / 255.0  # Normalize the image
     return img_array
 
 def extract_features(img_array):
     """Extract features for scikit-learn models."""
-    # If your model is a traditional machine learning model like SVM, RandomForest, etc.,
-    # you can extract features directly from the image or through a preprocessing step.
-    # This example assumes the model accepts raw pixel data, which might not be true for your case.
-    # You may need to perform additional feature extraction or transformation depending on your model.
-    
-    # Flatten image and extract features
+    # Flatten the image to match the expected input format for the model
     img_array = img_array.flatten().reshape(1, -1)
     
-    # If you're using a model like a RandomForest, for instance, you can get predictions directly.
-    features = model.predict(img_array)  # This is a simple example, adapt to your model
+    # Use the model to make predictions or extract features
+    prediction = model.predict(img_array)  # Modify as needed for your model
     
-    return features
+    return prediction
 
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
     return jsonify({'status': 'healthy'}), 200
 
-@app.route('/extract_features', methods=['POST'])
-def extract_features_api():
+@app.route('/predict', methods=['POST'])
+def predict_api():
+    """API to make predictions from the uploaded image."""
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
 
@@ -73,13 +69,13 @@ def extract_features_api():
         # Save the file temporarily
         file.save(temp_path)
 
-        # Preprocess the image and extract features
+        # Preprocess the image and make predictions
         img_array = preprocess_image(temp_path)
-        features = extract_features(img_array)
+        prediction = extract_features(img_array)
 
         return jsonify({
-            'message': 'Features extracted successfully',
-            'features': features.tolist()
+            'message': 'Prediction made successfully',
+            'prediction': prediction.tolist()
         })
 
     except Exception as e:
