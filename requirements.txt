@@ -1,4 +1,4 @@
-scikit-learn==1.0.2
-flask==2.2.2
-numpy==1.23.3
-pillow==9.3.0
+scikit-learn
+flask
+numpy
+pillow
