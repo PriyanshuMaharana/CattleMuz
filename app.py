@@ -1,15 +1,12 @@
 from flask import Flask, request, jsonify
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
+import joblib
 import os
 
 app = Flask(__name__)
 
-# Define URL and local path for the Keras model
-MODEL_PATH = os.getenv('MODEL_PATH', 'MAIN_MUZZLE.h5')
-INPUT_SHAPE = (71, 71, 3)
+# Define model path (use joblib instead of h5)
+MODEL_PATH = os.getenv('MODEL_PATH', 'model.joblib')
 
 # Initialize model globally
 model = None
@@ -18,32 +15,38 @@ penultimate_layer_model = None
 def init_model():
     global model, penultimate_layer_model
     try:
-        model = load_model(MODEL_PATH)
+        # Load the joblib model
+        model = joblib.load(MODEL_PATH)
         print('Model loaded successfully.')
-        penultimate_layer_model = tf.keras.models.Model(
-            inputs=model.input, 
-            outputs=model.layers[-2].output
-        )
+
+        # Assuming your model supports extracting a specific layer output
+        # For scikit-learn models, penultimate_layer_model might not apply
+        penultimate_layer_model = model
     except Exception as e:
         print(f'Error loading model: {str(e)}')
         raise
 
-# Initialize model when app starts
+# Initialize the model when the app starts
 init_model()
 
 def preprocess_image(img_path):
-    """Preprocess image according to your model's requirements."""
-    img = image.load_img(img_path, target_size=INPUT_SHAPE[:2])
-    img_array = image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = img_array / 255.0  # Rescale the image
-    return img_array
+    """Preprocess image for scikit-learn models or other non-TensorFlow models."""
+    # Add preprocessing steps as per your model's requirements
+    # For image-based scikit-learn models, consider resizing and normalizing the image
+    from PIL import Image
+    img = Image.open(img_path).resize((71, 71))
+    img_array = np.array(img).astype(np.float32) / 255.0  # Normalize the image
+    img_array = img_array.flatten()  # Flatten for scikit-learn models
+    return img_array.reshape(1, -1)  # Reshape to match input requirements
 
 def extract_features(img_array):
-    """Extract features using the penultimate layer of the model."""
-    features = penultimate_layer_model.predict(img_array)
-    features = features.flatten()  # Flatten to a 1D array
-    return features[:256]  # Extract the first 256 features
+    """Extract features using the model."""
+    try:
+        # Directly predict if using scikit-learn or equivalent
+        features = penultimate_layer_model.predict(img_array)
+        return features.flatten()[:256]  # Extract the first 256 features
+    except Exception as e:
+        raise ValueError(f"Error during feature extraction: {str(e)}")
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -88,3 +91,4 @@ if __name__ == '__main__':
     # Run on localhost (127.0.0.1) for local network access
     port = int(os.getenv('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=False)
+
