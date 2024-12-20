@@ -1,5 +1,7 @@
-Flask
+flask
+tensorflow
 numpy
-joblib
 Pillow
-tensorflow  
+scikit-learn
+joblib
+werkzeug
